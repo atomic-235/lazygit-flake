@@ -1,7 +1,8 @@
 {
   lib,
   stdenv,
-  fetchurl,
+  curl,
+  cacert,
 }:
 
 let
@@ -14,21 +15,33 @@ let
       aarch64-linux = "lazygit-linux-aarch64";
     }
     .${system} or (throw "lazygit: unsupported system ${system}");
+
+  url = "https://github.com/atomic-235/lazygit-flake/releases/download/v${data.version}/${asset}";
+
+  # Fixed-output fetch at build time. The Go binary embeds paths for tzdata,
+  # mailcap and iana-etc (runtime lookups with built-in fallbacks), which makes
+  # Nix's reference check reject it unless the check is waived.
+  binary = stdenv.mkDerivation {
+    name = "lazygit-${data.version}-${asset}";
+
+    outputHashMode = "flat";
+    outputHashAlgo = "sha256";
+    outputHash = data.assets.${system};
+    unsafeDiscardReferences = true;
+
+    nativeBuildInputs = [ curl ];
+
+    buildCommand = ''
+      export SSL_CERT_FILE=${cacert}/etc/ssl/certs/ca-bundle.crt
+      curl -fsSL --cacert "$SSL_CERT_FILE" -o "$out" ${lib.escapeShellArg url}
+    '';
+  };
 in
 stdenv.mkDerivation {
   pname = "lazygit";
   version = data.version;
 
-  src = fetchurl {
-    url = "https://github.com/atomic-235/lazygit-flake/releases/download/v${data.version}/${asset}";
-    hash = data.assets.${system};
-
-    # The binary embeds paths for tzdata, mailcap and iana-etc. They are
-    # runtime lookups with built-in fallbacks, not hard dependencies, but Nix
-    # refuses fixed-output paths that reference the store.
-    unsafeDiscardReferences = true;
-  };
-
+  src = binary;
   dontUnpack = true;
   dontStrip = true;
 
