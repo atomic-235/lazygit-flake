@@ -22,6 +22,11 @@ stdenv.mkDerivation {
   src = fetchurl {
     url = "https://github.com/atomic-235/lazygit-flake/releases/download/v${data.version}/${asset}";
     hash = data.assets.${system};
+
+    # The binary embeds paths for tzdata, mailcap and iana-etc. They are
+    # runtime lookups with built-in fallbacks, not hard dependencies, but Nix
+    # refuses fixed-output paths that reference the store.
+    unsafeDiscardReferences = true;
   };
 
   dontUnpack = true;

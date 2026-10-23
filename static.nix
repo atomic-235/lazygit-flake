@@ -8,7 +8,7 @@
 let
   data = builtins.fromJSON (builtins.readFile ./version.json);
 in
-pkgs.lazygit.overrideAttrs (old: {
+pkgs.pkgsStatic.lazygit.overrideAttrs (old: {
   version = data.version;
 
   src = pkgs.fetchFromGitHub {
