@@ -77,6 +77,12 @@ jobs:
           fi
           gh release upload "v${VERSION}" lazygit-linux-x86_64 --clobber
 
+      # The published asset must satisfy the flake's fixed-output check before
+      # the commit points consumers at it.
+      - name: Verify the flake can consume the asset
+        if: steps.build.outputs.publish == 'true'
+        run: nix build --no-link .#default
+
       - name: Commit and tag
         if: steps.build.outputs.publish == 'true'
         env:
